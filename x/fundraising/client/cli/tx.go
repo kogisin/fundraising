@@ -253,20 +253,18 @@ in order to bid for the amount of coin you bid for the auction.
 }
 
 func NewAddAllowedBidderCmd() *cobra.Command {
-	bech32PrefixAccAddr := sdk.GetConfig().GetBech32AccountAddrPrefix()
-
 	cmd := &cobra.Command{
-		Use:   "add-allowed-bidder [auction-id] [bidder-address] [max-bid-amount]",
-		Args:  cobra.ExactArgs(3),
+		Use:   "add-allowed-bidder [auction-id] [max-bid-amount]",
+		Args:  cobra.ExactArgs(2),
 		Short: "Add an allowed bidder for the auction",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Add an allowed bidder for the auction.
 This message is available for testing purpose and it is only accessible when you build the binary with testing mode.
 		
 Example:
-$ %s tx %s add-allowed-bidder 1 %s1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 10000000000 --from mykey 
+$ %s tx %s add-allowed-bidder 1 10000000000 --from mykey 
 `,
-				version.AppName, types.ModuleName, bech32PrefixAccAddr,
+				version.AppName, types.ModuleName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -280,11 +278,6 @@ $ %s tx %s add-allowed-bidder 1 %s1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 100000
 				return err
 			}
 
-			bidder, err := sdk.AccAddressFromBech32(args[1])
-			if err != nil {
-				return err
-			}
-
 			maxBidAmt, ok := sdk.NewIntFromString(args[1])
 			if !ok {
 				return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "maxium bid price must be a positive integer")
@@ -293,7 +286,7 @@ $ %s tx %s add-allowed-bidder 1 %s1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 100000
 			msg := types.NewAddAllowedBidder(
 				auctionId,
 				types.AllowedBidder{
-					Bidder:       bidder.String(),
+					Bidder:       clientCtx.GetFromAddress().String(),
 					MaxBidAmount: maxBidAmt,
 				},
 			)

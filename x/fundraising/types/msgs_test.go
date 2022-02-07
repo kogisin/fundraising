@@ -311,7 +311,7 @@ func TestAddAllowedBidder(t *testing.T) {
 		if tc.expectedErr == "" {
 			require.Nil(t, err)
 			signers := tc.msg.GetSigners()
-			require.Len(t, signers, 0)
+			require.Len(t, signers, 1)
 		} else {
 			require.EqualError(t, err, tc.expectedErr)
 		}

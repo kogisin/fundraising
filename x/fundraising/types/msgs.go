@@ -294,6 +294,9 @@ func (msg MsgAddAllowedBidder) Route() string { return RouterKey }
 func (msg MsgAddAllowedBidder) Type() string { return TypeMsgAddAllowedBidder }
 
 func (msg MsgAddAllowedBidder) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.AllowedBidder.Bidder); err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid bidder address: %v", err)
+	}
 	return nil
 }
 
@@ -302,5 +305,9 @@ func (msg MsgAddAllowedBidder) GetSignBytes() []byte {
 }
 
 func (msg MsgAddAllowedBidder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{}
+	addr, err := sdk.AccAddressFromBech32(msg.AllowedBidder.Bidder)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
 }
