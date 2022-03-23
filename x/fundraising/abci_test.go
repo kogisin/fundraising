@@ -125,3 +125,25 @@ func (s *ModuleTestSuite) TestEndBlockerVestingStatus() {
 	auctioneerBalance := s.getBalance(auctioneer, auction.GetPayingCoinDenom())
 	s.Require().True(coinEq(totalBidCoin, auctioneerBalance))
 }
+
+func (s *ModuleTestSuite) TestEmptyBid() {
+	auction := s.createBatchAuction(
+		s.addr(1),
+		parseDec("0.5"),
+		parseDec("0.1"),
+		parseCoin("5_000_000_000denom1"),
+		"denom2",
+		[]types.VestingSchedule{},
+		2,
+		parseDec("0.2"),
+		time.Now().AddDate(0, 0, -1),
+		time.Now().AddDate(0, 0, -1).AddDate(0, 2, 0),
+		true,
+	)
+	s.Require().Equal(types.AuctionStatusStarted, auction.GetStatus())
+
+	// Modify the current block time a day after the end time
+	s.ctx = s.ctx.WithBlockTime(auction.GetEndTimes()[0].AddDate(0, 0, 1))
+	fundraising.EndBlocker(s.ctx, s.keeper)
+
+}

@@ -317,48 +317,6 @@ func (s *KeeperTestSuite) TestFixedPriceAuction_CancelAuction() {
 	s.Require().True(s.getBalance(sellingReserveAddr, sellingCoinDenom).IsZero())
 }
 
-func (s *KeeperTestSuite) TestBatchAuction_AuctionStatus() {
-	standByAuction := s.createBatchAuction(
-		s.addr(0),
-		parseDec("1"),
-		parseDec("0.1"),
-		parseCoin("5000_000_000denom1"),
-		"denom2",
-		[]types.VestingSchedule{},
-		1,
-		sdk.MustNewDecFromStr("0.2"),
-		time.Now().AddDate(0, 6, 0),
-		time.Now().AddDate(0, 6, 0).AddDate(0, 1, 0),
-		true,
-	)
-
-	auction, found := s.keeper.GetAuction(s.ctx, standByAuction.GetId())
-	s.Require().True(found)
-	s.Require().Equal(types.AuctionStatusStandBy, auction.GetStatus())
-
-	feePool := s.app.DistrKeeper.GetFeePool(s.ctx)
-	auctionCreationFee := s.keeper.GetParams(s.ctx).AuctionCreationFee
-	s.Require().True(feePool.CommunityPool.IsEqual(sdk.NewDecCoinsFromCoins(auctionCreationFee...)))
-
-	startedAuction := s.createBatchAuction(
-		s.addr(1),
-		parseDec("0.5"),
-		parseDec("0.1"),
-		parseCoin("5000_000_000denom3"),
-		"denom4",
-		[]types.VestingSchedule{},
-		1,
-		sdk.MustNewDecFromStr("0.2"),
-		time.Now().AddDate(0, 0, -1),
-		time.Now().AddDate(0, 0, -1).AddDate(0, 2, 0),
-		true,
-	)
-
-	auction, found = s.keeper.GetAuction(s.ctx, startedAuction.GetId())
-	s.Require().True(found)
-	s.Require().Equal(types.AuctionStatusStarted, auction.GetStatus())
-}
-
 func (s *KeeperTestSuite) TestAddAllowedBidders() {
 	startedAuction := s.createFixedPriceAuction(
 		s.addr(0),
@@ -552,4 +510,46 @@ func (s *KeeperTestSuite) TestUpdateAllowedBidder() {
 			s.Require().Equal(tc.maxBidAmount, maxBidAmt)
 		})
 	}
+}
+
+func (s *KeeperTestSuite) TestBatchAuction_AuctionStatus() {
+	standByAuction := s.createBatchAuction(
+		s.addr(0),
+		parseDec("1"),
+		parseDec("0.1"),
+		parseCoin("5000_000_000denom1"),
+		"denom2",
+		[]types.VestingSchedule{},
+		1,
+		sdk.MustNewDecFromStr("0.2"),
+		time.Now().AddDate(0, 6, 0),
+		time.Now().AddDate(0, 6, 0).AddDate(0, 1, 0),
+		true,
+	)
+
+	auction, found := s.keeper.GetAuction(s.ctx, standByAuction.GetId())
+	s.Require().True(found)
+	s.Require().Equal(types.AuctionStatusStandBy, auction.GetStatus())
+
+	feePool := s.app.DistrKeeper.GetFeePool(s.ctx)
+	auctionCreationFee := s.keeper.GetParams(s.ctx).AuctionCreationFee
+	s.Require().True(feePool.CommunityPool.IsEqual(sdk.NewDecCoinsFromCoins(auctionCreationFee...)))
+
+	startedAuction := s.createBatchAuction(
+		s.addr(1),
+		parseDec("0.5"),
+		parseDec("0.1"),
+		parseCoin("5000_000_000denom3"),
+		"denom4",
+		[]types.VestingSchedule{},
+		1,
+		sdk.MustNewDecFromStr("0.2"),
+		time.Now().AddDate(0, 0, -1),
+		time.Now().AddDate(0, 0, -1).AddDate(0, 2, 0),
+		true,
+	)
+
+	auction, found = s.keeper.GetAuction(s.ctx, startedAuction.GetId())
+	s.Require().True(found)
+	s.Require().Equal(types.AuctionStatusStarted, auction.GetStatus())
 }

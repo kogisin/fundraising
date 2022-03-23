@@ -2,6 +2,7 @@ package fundraising_test
 
 import (
 	"encoding/binary"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,6 +60,7 @@ func (s *ModuleTestSuite) createFixedPriceAuction(
 	if fund {
 		s.fundAddr(auctioneer, params.AuctionCreationFee.Add(sellingCoin))
 	}
+
 	auction, err := s.keeper.CreateFixedPriceAuction(s.ctx, &types.MsgCreateFixedPriceAuction{
 		Auctioneer:       auctioneer.String(),
 		StartPrice:       startPrice,
@@ -73,9 +75,52 @@ func (s *ModuleTestSuite) createFixedPriceAuction(
 	return auction.(*types.FixedPriceAuction)
 }
 
-func (s *ModuleTestSuite) addAllowedBidder(auctionId uint64, bidder sdk.AccAddress, maxBidAmount sdk.Int) {
+func (s *ModuleTestSuite) createBatchAuction(
+	auctioneer sdk.AccAddress,
+	startPrice sdk.Dec,
+	minBidPrice sdk.Dec,
+	sellingCoin sdk.Coin,
+	payingCoinDenom string,
+	vestingSchedules []types.VestingSchedule,
+	maxExtendedRound uint32,
+	extendedRoundRate sdk.Dec,
+	startTime time.Time,
+	endTime time.Time,
+	fund bool,
+) *types.BatchAuction {
+	params := s.keeper.GetParams(s.ctx)
+	if fund {
+		s.fundAddr(auctioneer, params.AuctionCreationFee.Add(sellingCoin))
+	}
+
+	auction, err := s.keeper.CreateBatchAuction(s.ctx, &types.MsgCreateBatchAuction{
+		Auctioneer:        auctioneer.String(),
+		StartPrice:        startPrice,
+		MinBidPrice:       minBidPrice,
+		SellingCoin:       sellingCoin,
+		PayingCoinDenom:   payingCoinDenom,
+		VestingSchedules:  vestingSchedules,
+		MaxExtendedRound:  maxExtendedRound,
+		ExtendedRoundRate: extendedRoundRate,
+		StartTime:         startTime,
+		EndTime:           endTime,
+	})
+	s.Require().NoError(err)
+
+	return auction.(*types.BatchAuction)
+}
+
+func (s *ModuleTestSuite) addAllowedBidder(auctionId uint64, bidder sdk.AccAddress, maxBidAmt sdk.Int) {
+	auction, found := s.keeper.GetAuction(s.ctx, auctionId)
+	s.Require().True(found)
+
+	prevMaxBidAmt, found := auction.GetAllowedBiddersMap()[bidder.String()]
+	if found {
+		maxBidAmt = maxBidAmt.Add(prevMaxBidAmt)
+	}
+
 	err := s.keeper.AddAllowedBidders(s.ctx, auctionId, []types.AllowedBidder{
-		{Bidder: bidder.String(), MaxBidAmount: maxBidAmount},
+		{Bidder: bidder.String(), MaxBidAmount: maxBidAmt},
 	})
 	s.Require().NoError(err)
 }
@@ -126,7 +171,9 @@ func (s *ModuleTestSuite) fundAddr(addr sdk.AccAddress, coins sdk.Coins) {
 	s.Require().NoError(err)
 }
 
+// parseCoin parses string and returns sdk.Coin.
 func parseCoin(s string) sdk.Coin {
+	s = strings.ReplaceAll(s, "_", "")
 	coin, err := sdk.ParseCoinNormalized(s)
 	if err != nil {
 		panic(err)
@@ -134,7 +181,7 @@ func parseCoin(s string) sdk.Coin {
 	return coin
 }
 
-// parseDec is a shortcut for sdk.MustNewDecFromStr.
+// parseDec parses string and returns sdk.Dec.
 func parseDec(s string) sdk.Dec {
 	return sdk.MustNewDecFromStr(s)
 }
